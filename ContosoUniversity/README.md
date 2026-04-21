@@ -1,11 +1,11 @@
-# Contoso University - .NET Framework 4.8.2
+# Contoso University - .NET Framework 4.8
 
-This project is a ASP.NET MVC 5 targeting .NET Framework 4.8.2.
+This project is a ASP.NET MVC 5 targeting .NET Framework 4.8.
 
 ## Project Overview
 
 ### Framework
-- ASP.NET MVC 5 (.NET Framework 4.8.2)
+- ASP.NET MVC 5 (.NET Framework 4.8)
 
 ### Database Access: Entity Framework
 - Entity Framework Core 3.1.32

@@ -1,10 +1,10 @@
-# Real-Time Admin Notification System
+# Real-Time Notification System
 
-This project now includes a real-time notification system that alerts administrators whenever entity operations (create, update, delete) are performed in the system.
+This project now includes a real-time notification system that broadcasts whenever entity operations (create, update, delete) are performed in the system.
 
 ## Overview
 
-The notification system uses **Microsoft Message Queuing (MSMQ)** as the underlying technology to provide reliable, real-time notifications to administrators.
+The notification system uses **Microsoft Message Queuing (MSMQ)** as the underlying technology to provide reliable, real-time notifications to connected clients.
 
 ## Features
 
@@ -106,7 +106,7 @@ SendEntityNotification("Student", student.ID.ToString(), EntityOperation.CREATE)
 
 ## Testing the System
 
-1. Access the **Notifications** dashboard from the admin menu
+1. Access the **Notifications** dashboard from the main menu
 2. Click on any of the "Create new..." buttons provided
 3. Complete a create/edit/delete operation
 4. Observe the notification appearing in the top-right corner
@@ -132,7 +132,7 @@ SendEntityNotification("Student", student.ID.ToString(), EntityOperation.CREATE)
 
 - **Decoupled**: MSMQ ensures notifications don't affect main application performance
 - **Reliable**: Messages persist even if the web application restarts
-- **Scalable**: Can easily extend to support multiple administrators
+- **Scalable**: Multiple connected clients can each receive the same notification
 - **Maintainable**: Clear separation between notification logic and business logic
 
 ## Future Enhancements
@@ -142,6 +142,6 @@ Potential improvements for production use:
 1. **SignalR integration**: Real-time push notifications instead of polling
 2. **Email notifications**: Send email alerts for critical operations
 3. **Notification persistence**: Store notifications in database for audit trail
-4. **User preferences**: Allow admins to configure notification types
+4. **User preferences**: Allow users to configure notification types
 5. **Batch operations**: Group related notifications to reduce noise
 6. **Advanced filtering**: Filter notifications by entity type or operation
