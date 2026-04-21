@@ -8,34 +8,36 @@ The notification system uses **Microsoft Message Queuing (MSMQ)** as the underly
 
 ## Features
 
-- **Real-time notifications**: Admins receive immediate notifications when entities are modified
+- **Real-time notifications**: Users receive immediate notifications when entities are modified
 - **Entity coverage**: Monitors Students, Courses, Instructors, and Departments
 - **Operation tracking**: Tracks CREATE, UPDATE, and DELETE operations
-- **Admin-only**: Only users with administrator role receive notifications
+- **Open access**: This sample does not implement authentication; any visitor sees notifications
 - **Non-intrusive UI**: Notifications appear in the top-right corner with auto-dismiss
-- **Reliable delivery**: Uses MSMQ for guaranteed message delivery
+- **Reliable delivery**: Uses MSMQ to buffer messages until a client acknowledges them
 
 ## How It Works
 
 ### Backend Components
 
-1. **NotificationService**: Handles MSMQ operations for sending/receiving messages
+1. **NotificationService**: Handles MSMQ operations for sending and peeking messages,
+   plus removing them when acknowledged
 2. **BaseController**: Base class that all controllers inherit from to send notifications
 3. **Notification Model**: Entity to represent notification data
-4. **NotificationsController**: API endpoints for retrieving notifications
+4. **NotificationsController**: API endpoints for retrieving and acknowledging notifications
 
 ### Frontend Components
 
 1. **notifications.css**: Styling for notification UI elements
-2. **notifications.js**: JavaScript polling system that checks for new notifications
-3. **Layout integration**: Admin-only inclusion of notification assets
+2. **notifications.js**: JavaScript polling system that checks for new notifications and
+   acknowledges them once they have been displayed
+3. **Layout integration**: Notification assets are loaded for every page
 
 ### Technology Stack
 
 - **Microsoft Message Queuing (MSMQ)**: Message queue technology
-- **Entity Framework**: Data access for notification persistence
 - **ASP.NET MVC**: Web framework
-- **JavaScript/jQuery**: Frontend polling and UI updates
+- **Entity Framework Core**: Data access for the rest of the application
+- **JavaScript**: Frontend polling and UI updates
 - **Bootstrap**: UI styling
 
 ## Configuration
@@ -57,9 +59,9 @@ The notification system is configured in `Web.config`:
 
 ## Usage
 
-### For Administrators
+### For Visitors
 
-1. Log in with an administrator account
+1. Open the application in a browser
 2. Navigate to **Notifications** in the main menu to view the dashboard
 3. Perform any CRUD operation on entities (Students, Courses, Instructors, Departments)
 4. Watch for notifications appearing in the top-right corner
@@ -79,6 +81,15 @@ db.Students.Add(student);
 db.SaveChanges();
 SendEntityNotification("Student", student.ID.ToString(), EntityOperation.CREATE);
 ```
+
+### Delivery model
+
+- The HTTP `GET /Notifications/GetNotifications` endpoint **peeks** the queue
+  without removing messages, so multiple browser tabs can each see a new
+  notification.
+- After a client renders a notification it issues `POST /Notifications/MarkAsRead`
+  with the message id, which removes the message from the queue so it is not
+  redelivered indefinitely.
 
 ## Notification Types
 
@@ -111,7 +122,8 @@ SendEntityNotification("Student", student.ID.ToString(), EntityOperation.CREATE)
 
 ### Development Notes
 
-- Notifications are sent asynchronously and won't block main operations if MSMQ fails
+- Notifications are sent synchronously to MSMQ but failures are swallowed so they
+  do not block the originating request
 - Failed notification sends are logged to debug output but don't affect user operations
 - JavaScript polling occurs every 5 seconds
 - Maximum of 5 notifications are displayed simultaneously

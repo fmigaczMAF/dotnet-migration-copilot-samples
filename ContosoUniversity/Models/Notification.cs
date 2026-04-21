@@ -8,7 +8,13 @@ namespace ContosoUniversity.Models
     {
         [Key]
         public int Id { get; set; }
-        
+
+        // Identifier of the underlying MSMQ message (set when peeking from the queue).
+        // Used by clients to acknowledge / remove the message via MarkAsRead.
+        // Not persisted to the database.
+        [NotMapped]
+        public string MessageId { get; set; }
+
         [Required]
         [StringLength(100)]
         public string EntityType { get; set; }

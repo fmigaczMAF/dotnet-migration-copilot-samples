@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Messaging;
 using System.Configuration;
 using ContosoUniversity.Models;
@@ -6,16 +7,17 @@ using Newtonsoft.Json;
 
 namespace ContosoUniversity.Services
 {
-    public class NotificationService
+    public class NotificationService : IDisposable
     {
         private readonly string _queuePath;
         private readonly MessageQueue _queue;
+        private bool _disposed;
 
         public NotificationService()
         {
             // Get queue path from configuration or use default
             _queuePath = ConfigurationManager.AppSettings["NotificationQueuePath"] ?? @".\Private$\ContosoUniversityNotifications";
-            
+
             // Ensure the queue exists
             if (!MessageQueue.Exists(_queuePath))
             {
@@ -26,9 +28,10 @@ namespace ContosoUniversity.Services
             {
                 _queue = new MessageQueue(_queuePath);
             }
-            
+
             // Configure queue formatter
             _queue.Formatter = new XmlMessageFormatter(new Type[] { typeof(string) });
+            _queue.MessageReadPropertyFilter.SetAll();
         }
 
         public void SendNotification(string entityType, string entityId, EntityOperation operation, string userName = null)
@@ -67,36 +70,92 @@ namespace ContosoUniversity.Services
             }
         }
 
-        public Notification ReceiveNotification()
+        /// <summary>
+        /// Returns up to <paramref name="maxCount"/> pending notifications without
+        /// removing them from the queue. Each returned notification carries the
+        /// underlying MSMQ message id in <see cref="Notification.MessageId"/>; pass
+        /// that value to <see cref="MarkAsRead(string)"/> to remove the message.
+        /// </summary>
+        public IList<Notification> PeekNotifications(int maxCount)
         {
+            var results = new List<Notification>();
+            if (maxCount <= 0)
+            {
+                return results;
+            }
+
+            MessageEnumerator enumerator = null;
             try
             {
-                var message = _queue.Receive(TimeSpan.FromSeconds(1));
-                var jsonContent = message.Body.ToString();
-                return JsonConvert.DeserializeObject<Notification>(jsonContent);
-            }
-            catch (MessageQueueException ex) when (ex.MessageQueueErrorCode == MessageQueueErrorCode.IOTimeout)
-            {
-                // No messages available
-                return null;
+                enumerator = _queue.GetMessageEnumerator2();
+                while (results.Count < maxCount && enumerator.MoveNext())
+                {
+                    var message = enumerator.Current;
+                    try
+                    {
+                        var jsonContent = message.Body.ToString();
+                        var notification = JsonConvert.DeserializeObject<Notification>(jsonContent);
+                        if (notification != null)
+                        {
+                            notification.MessageId = message.Id;
+                            results.Add(notification);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to deserialize notification: {ex.Message}");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to receive notification: {ex.Message}");
-                return null;
+                System.Diagnostics.Debug.WriteLine($"Failed to peek notifications: {ex.Message}");
             }
+            finally
+            {
+                enumerator?.Close();
+            }
+
+            return results;
         }
 
-        public void MarkAsRead(int notificationId)
+        /// <summary>
+        /// Acknowledges (removes) the queued notification with the given MSMQ message id.
+        /// Returns true if a message was removed.
+        /// </summary>
+        public bool MarkAsRead(string messageId)
         {
-            // In a real implementation, you might want to store notifications in database as well
-            // for persistence and tracking read status
+            if (string.IsNullOrEmpty(messageId))
+            {
+                return false;
+            }
+
+            try
+            {
+                _queue.ReceiveById(messageId, TimeSpan.FromSeconds(1));
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                // Message no longer in queue (already acknowledged).
+                return false;
+            }
+            catch (MessageQueueException ex) when (ex.MessageQueueErrorCode == MessageQueueErrorCode.MessageNotFound
+                                                || ex.MessageQueueErrorCode == MessageQueueErrorCode.IOTimeout)
+            {
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to mark notification as read: {ex.Message}");
+                return false;
+            }
         }
 
         private string GenerateMessage(string entityType, string entityId, string entityDisplayName, EntityOperation operation)
         {
-            var displayText = !string.IsNullOrWhiteSpace(entityDisplayName) 
-                ? $"{entityType} '{entityDisplayName}'" 
+            var displayText = !string.IsNullOrWhiteSpace(entityDisplayName)
+                ? $"{entityType} '{entityDisplayName}'"
                 : $"{entityType} (ID: {entityId})";
 
             switch (operation)
@@ -114,7 +173,23 @@ namespace ContosoUniversity.Services
 
         public void Dispose()
         {
-            _queue?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _queue?.Dispose();
+            }
+
+            _disposed = true;
         }
     }
 }

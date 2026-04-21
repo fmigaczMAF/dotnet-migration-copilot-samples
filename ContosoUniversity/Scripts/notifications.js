@@ -7,6 +7,7 @@
         notificationCount: 0,
         checkInterval: 5000, // Check every 5 seconds
         maxNotifications: 5,
+        seenIds: {}, // MSMQ message ids already rendered, to avoid duplicates between polls
 
         init: function() {
             this.createContainer();
@@ -49,6 +50,13 @@
             .then(function(data) {
                 if (data.success && data.notifications && data.notifications.length > 0) {
                     data.notifications.forEach(function(notification) {
+                        var id = notification.MessageId;
+                        if (id && self.seenIds[id]) {
+                            return; // already rendered in a previous poll
+                        }
+                        if (id) {
+                            self.seenIds[id] = true;
+                        }
                         self.showNotification(notification);
                     });
                 }
@@ -82,6 +90,11 @@
                 '<div class="notification-title">' + notification.Operation + ' - ' + notification.EntityType + '</div>' +
                 '<div class="notification-message">' + notification.Message + '</div>' +
                 '<div class="notification-time">By ' + notification.CreatedBy + ' • ' + timeAgo + '</div>';
+
+            // Track the MSMQ message id on the element so we can ack it on close.
+            if (notification.MessageId) {
+                notificationEl.setAttribute('data-message-id', notification.MessageId);
+            }
             
             // Add to container
             this.container.appendChild(notificationEl);
@@ -95,9 +108,28 @@
             setTimeout(function() {
                 self.closeNotification(notificationEl.querySelector('.notification-close'));
             }, 60000);
-            
+
+            // Acknowledge the notification on the server so it's removed from the
+            // queue and not redelivered to this or any other client on the next poll.
+            this.acknowledge(notification.MessageId);
+
             // Limit number of notifications
             this.limitNotifications();
+        },
+
+        acknowledge: function(messageId) {
+            if (!messageId) {
+                return;
+            }
+            var formData = new FormData();
+            formData.append('messageId', messageId);
+            fetch('/Notifications/MarkAsRead', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            }).catch(function(error) {
+                console.log('Error acknowledging notification:', error);
+            });
         },
 
         closeNotification: function(closeButton) {

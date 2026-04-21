@@ -29,10 +29,9 @@
 1. Press F5 to start debugging
 2. The application will launch in your default browser
 
-### Step 2: Login as Administrator
-1. The application uses Windows Authentication
-2. Ensure your Windows user is in the administrator role
-3. You should see "Administrator" label next to your username
+### Step 2: Open the Application
+1. The application does not require authentication; the navigation bar is available to all users.
+2. Notifications are visible to anyone who has the site open in a browser.
 
 ### Step 3: Access Notification Dashboard
 1. Click "Notifications" in the main navigation menu
@@ -61,8 +60,7 @@
 ### Step 5: Verify MSMQ Queue
 1. Open Computer Management (compmgmt.msc)
 2. Navigate to "Message Queuing" → "Private Queues"
-3. You should see "contosouniversitynotifications" queue
-4. Check queue properties to see message statistics
+- **Verify queue**: A private queue named `ContosoUniversityNotifications` should appear under Computer Management → Message Queuing → Private Queues
 
 ## Troubleshooting
 
@@ -88,9 +86,8 @@
    - **Queue Path Issues**: The system uses private queues (.\Private$\) which don't require domain integration
 
 ### JavaScript Not Loading
-1. **Admin Role Check**: Ensure you're logged in as administrator
-2. **File Paths**: Verify `notifications.js` and `notifications.css` files exist
-3. **Browser Cache**: Clear cache and refresh
+1. **File Paths**: Verify `notifications.js` and `notifications.css` files exist
+2. **Browser Cache**: Clear cache and refresh
 
 ## Configuration Notes
 
