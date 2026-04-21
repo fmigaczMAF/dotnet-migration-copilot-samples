@@ -69,7 +69,7 @@ namespace ContosoUniversity.Controllers
             Student student = db.Students
                 .Include(s => s.Enrollments)
                     .ThenInclude(e => e.Course)
-                .Where(s => s.ID == id).Single();
+                .SingleOrDefault(s => s.ID == id);
             if (student == null)
             {
                 return HttpNotFound();
@@ -100,10 +100,11 @@ namespace ContosoUniversity.Controllers
                     ModelState.AddModelError("EnrollmentDate", "Please enter a valid enrollment date.");
                 }
 
-                // Ensure EnrollmentDate is within valid SQL Server datetime range
-                if (student.EnrollmentDate < new DateTime(1753, 1, 1) || student.EnrollmentDate > new DateTime(9999, 12, 31))
+                // Ensure EnrollmentDate is within the SQL Server datetime range.
+                // (DateTime cannot exceed 9999-12-31, so only the lower bound needs an explicit check.)
+                if (student.EnrollmentDate < new DateTime(1753, 1, 1))
                 {
-                    ModelState.AddModelError("EnrollmentDate", "Enrollment date must be between 1753 and 9999.");
+                    ModelState.AddModelError("EnrollmentDate", "Enrollment date must be on or after 1753-01-01.");
                 }
 
                 if (ModelState.IsValid)
@@ -154,10 +155,11 @@ namespace ContosoUniversity.Controllers
                     ModelState.AddModelError("EnrollmentDate", "Please enter a valid enrollment date.");
                 }
 
-                // Ensure EnrollmentDate is within valid SQL Server datetime range
-                if (student.EnrollmentDate < new DateTime(1753, 1, 1) || student.EnrollmentDate > new DateTime(9999, 12, 31))
+                // Ensure EnrollmentDate is within the SQL Server datetime range.
+                // (DateTime cannot exceed 9999-12-31, so only the lower bound needs an explicit check.)
+                if (student.EnrollmentDate < new DateTime(1753, 1, 1))
                 {
-                    ModelState.AddModelError("EnrollmentDate", "Enrollment date must be between 1753 and 9999.");
+                    ModelState.AddModelError("EnrollmentDate", "Enrollment date must be on or after 1753-01-01.");
                 }
 
                 if (ModelState.IsValid)

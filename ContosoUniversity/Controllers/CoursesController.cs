@@ -26,7 +26,7 @@ namespace ContosoUniversity.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Course course = db.Courses.Include(c => c.Department).Where(c => c.CourseID == id).Single();
+            Course course = db.Courses.Include(c => c.Department).SingleOrDefault(c => c.CourseID == id);
             if (course == null)
             {
                 return HttpNotFound();
@@ -53,7 +53,7 @@ namespace ContosoUniversity.Controllers
                 {
                     // Validate file type
                     var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp" };
-                    var fileExtension = Path.GetExtension(teachingMaterialImage.FileName).ToLower();
+                    var fileExtension = Path.GetExtension(teachingMaterialImage.FileName).ToLowerInvariant();
                     
                     if (!allowedExtensions.Contains(fileExtension))
                     {
@@ -136,7 +136,7 @@ namespace ContosoUniversity.Controllers
                 {
                     // Validate file type
                     var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp" };
-                    var fileExtension = Path.GetExtension(teachingMaterialImage.FileName).ToLower();
+                    var fileExtension = Path.GetExtension(teachingMaterialImage.FileName).ToLowerInvariant();
                     
                     if (!allowedExtensions.Contains(fileExtension))
                     {
@@ -207,7 +207,7 @@ namespace ContosoUniversity.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Course course = db.Courses.Include(c => c.Department).Where(c => c.CourseID == id).Single();
+            Course course = db.Courses.Include(c => c.Department).SingleOrDefault(c => c.CourseID == id);
             if (course == null)
             {
                 return HttpNotFound();
@@ -249,15 +249,6 @@ namespace ContosoUniversity.Controllers
             SendEntityNotification("Course", id.ToString(), courseTitle, EntityOperation.DELETE);
             
             return RedirectToAction("Index");
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                // Base class will dispose db and notificationService
-            }
-            base.Dispose(disposing);
         }
     }
 }
